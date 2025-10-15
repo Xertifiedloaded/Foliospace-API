@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
- "scripts": {
-    "dev": "node server.js",
-    "start": "node server.js",
-    "vercel-build": "echo 'Build successful'"
-  },
+"scripts": {
+  "build": "next build",
+  "start": "node server.js",
+  "dev": "node server.js"
+},
   "dependencies": {
     "@google/generative-ai": "latest",
     "@hookform/resolvers": "^3.10.0",
