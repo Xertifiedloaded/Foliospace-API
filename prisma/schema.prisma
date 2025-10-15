@@ -1,0 +1,273 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                      String          @id @default(auto()) @map("_id") @db.ObjectId
+  username                String          @unique
+  name                    String
+  email                   String          @unique
+  password                String
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+  otp                     String?
+  otpExpiry               DateTime?
+  isVerified              Boolean?        @default(false)
+  verificationToken       String?
+  verificationTokenExpiry DateTime?
+  references              Reference[]
+  profile                 Profile?
+  projects                Project[]
+  socials                 Social[]
+  links                   Link[]
+  experiences             Experience[]
+  education               Education[]
+  pageViews               PageView[]
+  skills                  Skill[]         @relation("UserSkills")
+  template                Template        @default(BASIC)
+  sessions                Session[]
+  awards                  Award[]
+  certifications          Certification[]
+  blogPosts               BlogPost[]
+}
+model Experience {
+  id     String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId String? @db.ObjectId
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  company     String?
+  position    String?
+  startDate   DateTime?
+  endDate     DateTime?
+  description String?
+}
+
+model Skill {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  level     SkillLevel
+  userId    String     @db.ObjectId
+  user      User       @relation("UserSkills", fields: [userId], references: [id])
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model BlogPost {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  slug        String // URL-friendly version of title (e.g., "my-first-post")
+  content     String // Blog post content (markdown or HTML)
+  excerpt     String? // Short description/summary
+  coverImage  String? // Cover image URL
+  tags        String[] // Array of tags
+  isPublished Boolean   @default(false)
+  publishedAt DateTime? // When the post was published
+  readTime    Int? // Estimated read time in minutes
+  views       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String        @db.ObjectId
+  comments BlogComment[]
+  likes    BlogLike[]
+
+  @@unique([userId, slug])
+  @@index([userId, isPublished, publishedAt])
+  @@index([slug])
+}
+
+model Reference {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @db.ObjectId
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  position     String
+  company      String
+  email        String
+  phone        String?
+  relationship String
+  yearsKnown   Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model BlogComment {
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  content   String
+  author    String
+  email     String
+  website   String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  post      BlogPost      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String        @db.ObjectId
+  parentId  String?       @db.ObjectId
+  parent    BlogComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies   BlogComment[] @relation("CommentReplies")
+
+  @@index([postId, createdAt])
+}
+
+model BlogLike {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  ipAddress String
+  userAgent String?
+  createdAt DateTime @default(now())
+  post      BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String   @db.ObjectId
+
+  @@unique([postId, ipAddress])
+}
+
+model Award {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  issuer      String
+  date        DateTime
+  description String?
+  url         String?
+  image       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String   @db.ObjectId
+}
+
+model Profile {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String?  @unique @db.ObjectId
+  user              User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  picture           String?
+  tagline           String?
+  bio               String?
+  hobbies           String[]
+  languages         String[]
+  address           String?
+  phoneNumber       String?
+  levelOfExperience Level?
+  yearsOfExperience Int?
+}
+
+model Certification {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  issuer       String
+  issueDate    DateTime
+  expiryDate   DateTime?
+  credentialId String?
+  url          String?
+  image        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String    @db.ObjectId
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VisitLog {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  portfolioOwner String
+  timestamp      DateTime @default(now())
+  userAgent      String
+  ipAddress      String
+}
+
+model PageView {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  username  String
+  period    String
+  views     Int      @default(0)
+  date      DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [username], references: [username])
+
+  @@unique([username, period, date])
+}
+
+model Project {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String? @db.ObjectId
+  user        User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String?
+  description String?
+  link        String?
+  githubLink  String?
+  image       String?
+}
+
+model Link {
+  id     String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId String? @db.ObjectId
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url    String?
+  text   String?
+}
+
+model Social {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String? @db.ObjectId
+  user      User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String?
+  link      String?
+  isVisible Boolean @default(false)
+}
+
+
+
+model Education {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String?   @db.ObjectId
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution String?
+  degree      String?
+  startDate   DateTime?
+  endDate     DateTime?
+}
+
+model Waitlist {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+model ScamEmail {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+enum Level {
+  Junior
+  Mid
+  Senior
+}
+
+enum Template {
+  BASIC
+  MODERN
+  PROFESSIONAL
+  MINIMAL
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
